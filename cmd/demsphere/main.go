@@ -18,15 +18,15 @@ var (
 
 var (
 	planet           = "earth" // Planet
-	minDetail        = 15      //
-	maxDetail        = 30
+	minDetail        = 3      //
+	maxDetail        = 5
 	meanRadius       = 6373934.0        // Mean radius of the planet
 	minElevation     = -10900.0         // Highest point of planet
 	maxElevation     = 8849.0           // Lowest point of planet
-	tolerance        = 50.0             // Tolerance - accurate to this meters
-	exaggeration     = 15.0             // Vertical exaggeration
+	tolerance        = 100.0             // Tolerance - accurate to this meters
+	exaggeration     = 5.0             // Vertical exaggeration
 	scale            = 1.0 / meanRadius // Final scaling
-	innerShellScale  = 1                // Scaling for inner shell, compared to outer one
+	innerShellScale  = 1.0               // Scaling for inner shell, compared to outer one
 )
 
 func timed(name string) func() {
@@ -51,7 +51,7 @@ func main() {
 	}
 	// Make outer shell
 	triangulator := demsphere.NewTriangulator(
-		im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale)
+	im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale)
 	done = timed("generating outer mesh")
 	triangles := triangulator.Triangulate()
 	done()
@@ -59,7 +59,7 @@ func main() {
 	// Making inner shell
 	im = imaging.Invert(im) //Inverting image
 	triangulator = demsphere.NewTriangulator(
-		im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale*float64(innerShellScale))
+	im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale*float64(innerShellScale))
 	// Flippig normals
 	inner := triangulator.Triangulate()
 	for i, t := range inner {
