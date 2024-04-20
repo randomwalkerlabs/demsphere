@@ -16,6 +16,19 @@ var (
 	outputFile = kingpin.Flag("output", "Output STL file to write.").Required().Short('o').String() // Currently not in use
 )
 
+var (
+	planet           = "earth" // Planet
+	minDetail        = 15      //
+	maxDetail        = 30
+	meanRadius       = 6373934.0        // Mean radius of the planet
+	minElevation     = -10900.0         // Highest point of planet
+	maxElevation     = 8849.0           // Lowest point of planet
+	tolerance        = 50.0             // Tolerance - accurate to this meters
+	exaggeration     = 15.0             // Vertical exaggeration
+	scale            = 1.0 / meanRadius // Final scaling
+	innerShellScale  = 1                // Scaling for inner shell, compared to outer one
+)
+
 func timed(name string) func() {
 	if len(name) > 0 {
 		fmt.Printf("%s... ", name)
@@ -36,18 +49,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Defining variables for stl generation
-	planet = 'earth' // Planet
-	minDetail = 15 // 
-	maxDetail = 30
-	meanRadius = 6373934 // Mean radius of the planet
-	minElevation = -10900 // Highest point of planet
-	maxElevation = 8849 // Lowest point of planet
-	tolerance = 50 // Tolerance - acurate to this meters
-	exaggeration = 15 // Vertical exaggeration
-	scale = 1/meanRadius // Final scaling
-	innerShellscale = 1 // Scaling for inner shell, compared to outer one
-
 	// Make outer shell
 	triangulator := demsphere.NewTriangulator(
 		im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale)
@@ -57,8 +58,8 @@ func main() {
 	fmt.Println(len(triangles))
 	// Making inner shell
 	im = imaging.Invert(im) //Inverting image
-	triangulator := demsphere.NewTriangulator(
-		im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale*innerShellscale)
+	triangulator = demsphere.NewTriangulator(
+		im, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale*float64(innerShellScale))
 	// Flippig normals
 	inner := triangulator.Triangulate()
 	for i, t := range inner {
