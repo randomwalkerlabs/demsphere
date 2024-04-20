@@ -13,7 +13,7 @@ import (
 
 var (
 	inputFile  = kingpin.Flag("input", "Input DEM image to process.").Required().Short('i').ExistingFile()
-	outputFile = kingpin.Flag("output", "Output STL file to write.").Required().Short('o').String() // Currently not in use
+	//outputFile = kingpin.Flag("output", "Output STL file to write.").Required().Short('o').String() // Currently not in use
 )
 
 var (
