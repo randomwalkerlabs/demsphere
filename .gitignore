@@ -3,3 +3,5 @@ cmd/demsphere/demsphere
 cmd/demsphere/.DS_Store
 cmd/.DS_Store
 .DS_Store
+*.mod
+*.sum
