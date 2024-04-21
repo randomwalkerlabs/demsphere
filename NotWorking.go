@@ -14,16 +14,16 @@ import (
 var (
 	inputFile  = kingpin.Flag("input", "Input DEM image to process.").Required().Short('i').ExistingFile()
 	//outputFile = kingpin.Flag("output", "Output STL file to write.").Required().Short('o').String()
-	Planet = "Earth"
-	MinDetail = 9
-	MaxDetail = 12
-	MeanRadius = 6373934
-	MinElevation = -10900
-	MaxElevation = 8849
+	Planet = "Mars"
+	MinDetail = 10
+	MaxDetail = 15
+	MeanRadius = 3389500
+	MinElevation = -11000
+	MaxElevation = 21900
 	Tolerance = 50
-	Exaggeration = 15
-	//Scale = 1/MeanRadius
-	InnerShellScale = 0.5
+	Exaggeration = 10
+	// Scale = 1/MeanRadius
+	InnerShellScale = 0.9
 )
 
 	// Planet: "Mercury"
