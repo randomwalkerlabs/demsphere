@@ -13,14 +13,14 @@ import (
 
 var (
 	inputFile  = kingpin.Flag("input", "Input DEM image to process.").Required().Short('i').ExistingFile()
-	Planet = "Mars"
+	Planet = "Venus"
     MinDetail = 9
     MaxDetail = 12
-    MeanRadius = 3389500
-    MinElevation = -11000
-    MaxElevation = 21900
-    Tolerance = 30
-    Exaggeration = 10
+    MeanRadius = 6051800
+    MinElevation = -2900
+    MaxElevation = 10700
+    Tolerance = 40
+    Exaggeration = 30
 	Scale = 1
 )
 
@@ -189,7 +189,7 @@ func main() {
 
 // Planet	Mean Radius (m)	Location	Max Elevation (m)	Min Depth (m)	Deepest Point Location
 // Mercury	2,439,700	Caloris Basin	4,480				5,380			Caloris Basin
-// Venus	6,051,800	Maxwell Montes	11,000				N/A				N/A
+// Venus	6,051,800	Maxwell Montes	10,700				2900			Diana Chasma
 // Earth	6,371,000	Mount Everest	8,848.86			-10,994			Mariana Trench
 // Mars		3,389,500	Olympus Mons	21,900				11,000			Hellas Planitia
 // Jupiter	69,911,000	N/A				N/A					N/A				N/A
