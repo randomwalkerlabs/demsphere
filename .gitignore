@@ -4,3 +4,4 @@ cmd/demsphere/Outputl STLs/.DS_Store
 cmd/demsphere/demsphere
 go.mod
 go.sum
+/cmd/demsphere/Outputl STLs
