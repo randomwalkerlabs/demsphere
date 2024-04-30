@@ -13,7 +13,15 @@ import (
 
 var (
 	inputFile  = kingpin.Flag("input", "Input DEM image to process.").Required().Short('i').ExistingFile()
-	outputFile = kingpin.Flag("output", "Output STL file to write.").Required().Short('o').String()
+	Planet = "Mars"
+    MinDetail = 9
+    MaxDetail = 12
+    MeanRadius = 3389500
+    MinElevation = -11000
+    MaxElevation = 21900
+    Tolerance = 30
+    Exaggeration = 10
+	Scale = 1
 )
 
 func timed(name string) func() {
@@ -30,92 +38,162 @@ func main() {
 	var done func()
 
 	kingpin.Parse()
-
-	done = timed("reading input")
+	// Reading input DEM
+	done = timed("Reading input DEM")
 	im, err := fauxgl.LoadImage(*inputFile)
 	done()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Image, minDetail, maxDetail, meanRadius, minElevation, maxElevation, tolerance, exaggeration, scale
+	// Print all the variables
+	output := fmt.Sprintf("\nPlanet: %s\nMinDetail: %d\nMaxDetail: %d\nMeanRadius: %d\nMinElevation: %d\nMaxElevation: %d\nTolerance: %d\nExaggeration: %d\nScale: %d\n",
+        Planet,
+        MinDetail,
+        MaxDetail,
+        MeanRadius,
+        MinElevation,
+        MaxElevation,
+        Tolerance,
+        Exaggeration,
+        Scale,
+    )
+    fmt.Println(output)
 
-	// mercury
-	// triangulator := demsphere.NewTriangulator(
-	// 	im, 6, 12, 2439400, -10764, 8994, 50, 4, 1.0/2439400)
-
-	// moon
-	// triangulator := demsphere.NewTriangulator(
-	// 	im, 6, 11, 1737400, -18257, 21563, 50, 3, 1.0/1737400)
-
-	// mars
-	//triangulator := demsphere.NewTriangulator(
-	//	im, 9, 12, 3396190, -8201, 21241, 50, 10, 1.0/3396190)
-
-	// earth
+	// Working on the outer shell
 	triangulator := demsphere.NewTriangulator(
-	im, 9, 12, 6373934, -10900, 8849, 50, 15, 1.0/6373934)
-
-	// pluto
-	// triangulator := demsphere.NewTriangulator(
-	// 	im, 6, 12, 1188300, -4101, 6491, 50, 3, 1.0/1188300)
-
-	done = timed("generating positive mesh")
+		im, int(MinDetail), int(MaxDetail), float64(MeanRadius), float64(MinElevation), float64(MaxElevation), float64(Tolerance), float64(Exaggeration), float64(Scale))
+	done = timed("Generating positive mesh")
 	triangles := triangulator.Triangulate()
 	done()
+	fmt.Println(fmt.Sprintf("Generated %v triangles for outer mesh", len(triangles)))
+	// Writing the Outer STL
+	filename_out := fmt.Sprintf("%s_Outer_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
+	fmt.Println(fmt.Sprintf("Filename set to %s", filename_out))
+	done = timed("Writing STL for outer shell")
+	demsphere.WriteSTLFile(filename_out, triangles)
+	done()
 
-	fmt.Println(len(triangles))
-
-	im = imaging.Invert(im)
+	// Working on inner shell
+	im_inv := imaging.Invert(im)
 	triangulator = demsphere.NewTriangulator(
-		im, 9, 12, 6373934, -10900, 8849, 50, 15, 1.0/6373934)
+		im_inv, int(MinDetail), int(MaxDetail), float64(MeanRadius), float64(MinElevation), float64(MaxElevation), float64(Tolerance), float64(Exaggeration), float64(Scale))
 
+	done = timed("Generating negative mesh")
 	inner := triangulator.Triangulate()
 	for i, t := range inner {
 		inner[i] = demsphere.Triangle{t.C, t.B, t.A}
 	}
-	done = timed("generating negative mesh")
-	triangles = append(triangles, inner...)
-	fmt.Println(len(triangles))
+	fmt.Println(fmt.Sprintf("Generated %v triangles for inner mesh", len(inner)))
 	done()
 
-	// inner := fauxgl.NewSphere(4)
-	// inner.Transform(fauxgl.Scale(fauxgl.V(0.85, 0.85, 0.85)))
-	// inner.ReverseWinding()
-	// for _, t := range inner.Triangles {
-	// 	p1 := demsphere.Vector(t.V1.Position)
-	// 	p2 := demsphere.Vector(t.V2.Position)
-	// 	p3 := demsphere.Vector(t.V3.Position)
-	// 	triangles = append(triangles, demsphere.Triangle{p1, p2, p3})
-	// }
-
-	// fmt.Println(len(triangles))
-
-	done = timed("writing output")
-	demsphere.WriteSTLFile(*outputFile, triangles)
+	// Writing the inner shell
+	filename_in := fmt.Sprintf("%s_Inner_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
+	fmt.Println(fmt.Sprintf("Filename set to %s", filename_in))
+	done = timed("Writing STL for inner shell")
+	demsphere.WriteSTLFile(filename_in, inner)
 	done()
 }
 
-// 4,5120,4.7372172692
-// 5,20480,2.3686086346009336
-// 6,81920,1.1844992435794788
-// 7,327680,0.5635352519913389
-// 8,1310720,0.2833191921173619
-// 9,5242880,0.14087309976888143
-// 10,20971520,0.07043426041304851
-// 11,83886080,0.036106462472517295
-// 12,335544320,0.018169800357500515
+	// Planet = "Mercury"
+    // MinDetail = 9
+    // MaxDetail = 12
+    // MeanRadius = 2439700
+    // MinElevation = -5380
+    // MaxElevation = 4480
+    // Tolerance = 30
+    // Exaggeration = 5
+	// Scale = 1
 
+	// Planet = "Venus"
+    // MinDetail = 6
+    // MaxDetail = 10
+    // MeanRadius = 6051800
+    // MinElevation = -1000
+    // MaxElevation = 11000
+    // Tolerance = 50
+    // Exaggeration = 15
+	// Scale = 1
 
+	// Planet = "Earth"
+	// MinDetail = 6
+	// MaxDetail = 11
+	// MeanRadius = 6373934
+	// MinElevation = -10900
+	// MaxElevation = 8849
+	// Tolerance = 30
+	// Exaggeration = 15
+	// Scale = 1
 
+	// Planet = "Mars"
+    // MinDetail = 9
+    // MaxDetail = 12
+    // MeanRadius = 3389500
+    // MinElevation = -11000
+    // MaxElevation = 21900
+    // Tolerance = 30
+    // Exaggeration = 15
+	// Scale = 1
 
-// Planet	Radius (m)	Min Elevation (m)	Max Elevation (m)
-// Mercury	2,439,700	-5,380	4,250
-// Venus	6,051,800	-650	650
-// Earth	6,371,000	-10,900	8,850
-// Mars	3,389,500	-8,200	21,900
-// Jupiter	69,911,000	N/A	N/A
-// Saturn	58,232,000	N/A	N/A
-// Uranus	25,362,000	N/A	N/A
-// Neptune	24,622,000	N/A	N/A
-// Pluto	1,186,000	-5,900	5,900
+	// Planet = "Jupiter"
+    // MinDetail = 9
+    // MaxDetail = 12
+    // MeanRadius = 69911000
+    // MinElevation = -5000
+    // MaxElevation = 5000
+    // Tolerance = 30
+    // Exaggeration = 100
+	// Scale = 1
+
+	// Planet = "Saturn"
+    // MinDetail = 6
+    // MaxDetail = 10
+    // MeanRadius = 58232000
+    // MinElevation = -1000
+    // MaxElevation = 1000
+    // Tolerance = 50
+    // Exaggeration = 30
+	// Scale = 1
+
+	// Planet = "Uranus"
+    // MinDetail = 6
+    // MaxDetail = 10
+    // MeanRadius = 25362000
+    // MinElevation = -1000
+    // MaxElevation = 1000
+    // Tolerance = 50
+    // Exaggeration = 30
+	// Scale = 1
+
+	// Planet = "Neptune"
+    // MinDetail = 6
+    // MaxDetail = 10
+    // MeanRadius = 24622000
+    // MinElevation = -1000
+    // MaxElevation = 1000
+    // Tolerance = 50
+    // Exaggeration = 30
+	// Scale = 1
+
+	// Planet = "Moon"
+    // MinDetail = 6
+    // MaxDetail = 11
+    // MeanRadius = 1737100
+    // MinElevation = -9000
+    // MaxElevation = 10800
+    // Tolerance = 30
+    // Exaggeration = 15
+	// Scale = 1
+
+// Planet data
+
+// Planet	Mean Radius (m)	Location	Max Elevation (m)	Min Depth (m)	Deepest Point Location
+// Mercury	2,439,700	Caloris Basin	4,480				5,380			Caloris Basin
+// Venus	6,051,800	Maxwell Montes	11,000				N/A				N/A
+// Earth	6,371,000	Mount Everest	8,848.86			-10,994			Mariana Trench
+// Mars		3,389,500	Olympus Mons	21,900				11,000			Hellas Planitia
+// Jupiter	69,911,000	N/A				N/A					N/A				N/A
+// Saturn	58,232,000	N/A				N/A					N/A				N/A
+// Uranus	25,362,000	N/A				N/A					N/A				N/A
+// Neptune	24,622,000	N/A				N/A					N/A				N/A
+// Moon		1,737,100	Mons Huygens	10,800				9,000			Mare Imbrium
