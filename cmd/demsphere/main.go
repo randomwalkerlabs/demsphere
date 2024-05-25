@@ -13,15 +13,16 @@ import (
 
 var (
 	inputFile  = kingpin.Flag("input", "Input DEM image to process.").Required().Short('i').ExistingFile()
-	Planet = "Venus"
-    MinDetail = 9
-    MaxDetail = 12
-    MeanRadius = 6051800
-    MinElevation = -2900
-    MaxElevation = 10700
-    Tolerance = 40
-    Exaggeration = 30
-	Scale = 1
+	Planet = "Mars"
+    MinDetail = 6 //8
+    MaxDetail = 8 //10
+    MeanRadius = 3389500
+    MinElevation = -11000
+    MaxElevation = 21900
+    Tolerance = 30
+    Exaggeration = 20
+	Scale = .95/3389500
+	Shell = 0.001 //(in mm)
 )
 
 func timed(name string) func() {
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	// Print all the variables
-	output := fmt.Sprintf("\nPlanet: %s\nMinDetail: %d\nMaxDetail: %d\nMeanRadius: %d\nMinElevation: %d\nMaxElevation: %d\nTolerance: %d\nExaggeration: %d\nScale: %d\n",
+	output := fmt.Sprintf("\nGenerting model for %s\nMinDetail: %d\nMaxDetail: %d\nMeanRadius: %d\nMinElevation: %d\nMaxElevation: %d\nTolerance: %d\nExaggeration: %d\nScale: %d\nShell: %d",
         Planet,
         MinDetail,
         MaxDetail,
@@ -57,10 +58,29 @@ func main() {
         Tolerance,
         Exaggeration,
         Scale,
+		Shell,
     )
     fmt.Println(output)
 
-	// Working on the outer shell
+	outer_mesh_stats := fmt.Sprintf("\n\nOuter shell stats: \nMin Radius: %.2fmm, \nMax Radius: %.2fmm",
+		100*(float64(MeanRadius) + float64(MinElevation)*float64(Exaggeration)) * float64(Scale),
+		100*(float64(MeanRadius) + float64(MaxElevation)*float64(Exaggeration)) * float64(Scale),
+	)
+	fmt.Println(outer_mesh_stats)
+
+	//Scale_inner := ((float64(MeanRadius) + float64(MinElevation)*float64(Exaggeration)) * float64(Scale) - float64(Shell))/(float64(MeanRadius) + float64(MaxElevation)*float64(Exaggeration))
+
+	Scale_inner := float64(Scale) - float64(Shell)/(float64(MeanRadius) + float64(MinElevation)*float64(Exaggeration))
+	inner_mesh_stats := fmt.Sprintf("\n\nInner shell stats: \nShell Thickness: %d\nInner shell scale: %d\nScale Ratio: %f\nMin Radius: %.2fmm, \nMax Radius: %.2fmm",
+		Shell,  
+		Scale_inner,
+		Scale_inner/Scale,
+		100*(float64(MeanRadius) + float64(-MaxElevation)*float64(Exaggeration)) * float64(Scale_inner),
+		100*(float64(MeanRadius) + float64(-MinElevation)*float64(Exaggeration)) * float64(Scale_inner),
+	)
+	fmt.Println(inner_mesh_stats)
+
+	// Working on the outer shellrhin
 	triangulator := demsphere.NewTriangulator(
 		im, int(MinDetail), int(MaxDetail), float64(MeanRadius), float64(MinElevation), float64(MaxElevation), float64(Tolerance), float64(Exaggeration), float64(Scale))
 	done = timed("Generating positive mesh")
@@ -68,19 +88,20 @@ func main() {
 	done()
 	fmt.Println(fmt.Sprintf("Generated %v triangles for outer mesh", len(triangles)))
 	// Writing the Outer STL
-	filename_out := fmt.Sprintf("%s_Outer_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
-	fmt.Println(fmt.Sprintf("Filename set to %s", filename_out))
-	done = timed("Writing STL for outer shell")
-	demsphere.WriteSTLFile(filename_out, triangles)
-	done()
+	// filename_out := fmt.Sprintf("%s_Outer_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
+	// fmt.Println(fmt.Sprintf("Filename set to %s", filename_out))
+	// done = timed("Writing STL for outer shell")
+	// demsphere.WriteSTLFile(filename_out, triangles)
+	// done()
 
 	// Working on inner shell
 	im_inv := imaging.Invert(im)
-	triangulator = demsphere.NewTriangulator(
-		im_inv, int(MinDetail), int(MaxDetail), float64(MeanRadius), float64(MinElevation), float64(MaxElevation), float64(Tolerance), float64(Exaggeration), float64(Scale))
+	
+	inner_triangulator := demsphere.NewTriangulator(
+		im_inv, int(MinDetail), int(MaxDetail), float64(MeanRadius), float64(-MaxElevation), float64(0), float64(Tolerance), float64(Exaggeration), float64(Scale))
 
 	done = timed("Generating negative mesh")
-	inner := triangulator.Triangulate()
+	inner := inner_triangulator.Triangulate()
 	for i, t := range inner {
 		inner[i] = demsphere.Triangle{t.C, t.B, t.A}
 	}
@@ -88,11 +109,19 @@ func main() {
 	done()
 
 	// Writing the inner shell
-	filename_in := fmt.Sprintf("%s_Inner_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
-	fmt.Println(fmt.Sprintf("Filename set to %s", filename_in))
-	done = timed("Writing STL for inner shell")
-	demsphere.WriteSTLFile(filename_in, inner)
+	// filename_in := fmt.Sprintf("%s_Inner_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
+	// fmt.Println(fmt.Sprintf("Filename set to %s", filename_in))
+	// done = timed("Writing STL for inner shell")
+	// demsphere.WriteSTLFile(filename_in, inner)
+	// done()
+
+	done = timed("Writing STL for final shell")
+	shell := append(triangles, inner...)
+	filename_shell := fmt.Sprintf("%s_Shell_%d_%d_%d_%d.stl", Planet, MinDetail, MaxDetail, Tolerance, Exaggeration)
+	demsphere.WriteSTLFile(filename_shell, shell)
 	done()
+	
+
 }
 
 	// Planet = "Mercury"
@@ -106,13 +135,13 @@ func main() {
 	// Scale = 1
 
 	// Planet = "Venus"
-    // MinDetail = 6
-    // MaxDetail = 10
+    // MinDetail = 9
+    // MaxDetail = 12
     // MeanRadius = 6051800
-    // MinElevation = -1000
-    // MaxElevation = 11000
-    // Tolerance = 50
-    // Exaggeration = 15
+    // MinElevation = -2900
+    // MaxElevation = 10700
+    // Tolerance = 40
+    // Exaggeration = 30
 	// Scale = 1
 
 	// Planet = "Earth"
